@@ -78,16 +78,16 @@ main ::proc(){
     }
 
     for !r1.WindowShouldClose(){
-        if r1.IsKeyDown(.UP){
+        if r1.IsKeyDown(.UP) && move_direction.y != 1{
             move_direction = {0,-1} 
 
-        }else if r1.IsKeyDown(.DOWN){
+        }else if r1.IsKeyDown(.DOWN) && move_direction.y != -1{
             move_direction = {0,1} 
 
-        }else if r1.IsKeyDown(.LEFT){
+        }else if r1.IsKeyDown(.LEFT) && move_direction.x != 1{
             move_direction = {-1,0} 
 
-        }else if r1.IsKeyDown(.RIGHT){
+        }else if r1.IsKeyDown(.RIGHT) && move_direction.x != -1{
             move_direction = {1,0} 
         }
 
