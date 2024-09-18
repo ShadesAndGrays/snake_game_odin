@@ -2,12 +2,14 @@ package snake
 
 import r1 "vendor:raylib"
 import "core:math"
+import "core:math/linalg"
 import "core:fmt"
 
 WINDOW_SIZE :: 1000
 GRID_WIDTH :: 20
 CELL_SIZE :: 16
 Vec2i :: [2]int
+Vec2f :: [2]f32
 CANVAS_SIZE  :: GRID_WIDTH *CELL_SIZE
 TICK_RATE :: 0.13
 move_direction: Vec2i
@@ -16,6 +18,7 @@ MAX_SNAKE_LENGTH :: GRID_WIDTH*GRID_WIDTH
 SNAKE_STARTING_LENGTH :: 3
 
 snake: [MAX_SNAKE_LENGTH]Vec2i
+snake_smooth: [MAX_SNAKE_LENGTH]Vec2f
 snake_length:int
 game_over: bool
 
@@ -26,9 +29,11 @@ shake_timer:f32
 SHAKE_DURATION :: 2.0
 
 place_food :: proc(){
+
     occupied:[GRID_WIDTH][GRID_WIDTH] bool
     for i in 0..<snake_length{
-        occupied[snake[i].x][snake[i].y] = true
+        snake_remaped := linalg.clamp(snake[i],Vec2i{0,0},Vec2i{GRID_WIDTH,GRID_WIDTH})
+        occupied[snake_remaped.x][snake_remaped.y] = true
     }
     free_cells := make ([dynamic]Vec2i,context.temp_allocator)
     for x in 0..<GRID_WIDTH{
@@ -54,6 +59,7 @@ restart :: proc(){
     start_head_position :Vec2i = {GRID_WIDTH/2,GRID_WIDTH/2}
     for i:= 0; i < snake_length; i +=1{
     snake[i] = start_head_position - {0,i};
+    snake_smooth[i] = {f32(snake[i].x),f32(snake[i].y)} 
     }
     game_over = false
     move_direction = {0,1}
@@ -134,15 +140,19 @@ main ::proc(){
             next_part_pos := snake[0]
             snake[0] += move_direction 
 
-            if snake[0].x < 0{
+            if snake_smooth[0].x < -0.5{
                 snake[0].x = GRID_WIDTH-1
-            } else if snake[0].x >= GRID_WIDTH{
+                snake_smooth[0].x =  GRID_WIDTH-0.5 
+            } else if snake_smooth[0].x > GRID_WIDTH-0.5{
                 snake[0].x = 0 
+                snake_smooth[0].x = -0.5 
             } 
-            if snake[0].y < 0{
+            if snake_smooth[0].y < -0.5{
                 snake[0].y = GRID_WIDTH-1 
-            } else if snake[0].y >= GRID_WIDTH{
+                snake_smooth[0].y = GRID_WIDTH-0.5 
+            } else if snake_smooth[0].y > GRID_WIDTH-0.5{
                 snake[0].y = 0 
+                snake_smooth[0].y = -0.5 
             }
 
             if snake[0] == food_pos{
@@ -159,10 +169,22 @@ main ::proc(){
                     r1.PlaySound(crash_sound)
                 }
                 snake[i] = next_part_pos
+                if r1.Vector2Distance(
+                    {f32(snake[i].x),f32(snake[i].y)},
+                    {f32(cur_pos.x),f32(cur_pos.y)}
+                    ) > 1{
+                    snake_smooth[i] = {f32(snake[i].x),f32(snake[i].y)}
+
+                }
+
                 next_part_pos = cur_pos
             }
 
             tick_timer = TICK_RATE + tick_timer
+        }
+        for i in 0..<snake_length{
+            new_pos :Vec2f= {f32(snake[i].x),f32(snake[i].y)}
+            snake_smooth[i] = linalg.lerp(snake_smooth[i],new_pos,TICK_RATE)
         }
 
         update_shake(&camera)
@@ -175,26 +197,26 @@ main ::proc(){
 
         for i := 0; i < snake_length; i+=1{
             part_sprite := body_sprite
-            dir :Vec2i
+            dir :Vec2f
 
             if i == 0{
                 part_sprite = head_sprite
-                dir = snake[i] - snake[i+1]
+                dir = snake_smooth[i] - snake_smooth[i+1]
             } else if i == snake_length -1{
                 part_sprite = taile_sprite
-                dir = snake[i-1] - snake[i]
+                dir = snake_smooth[i-1] - snake_smooth[i]
             } else {
-                dir = snake[i-1] - snake[i]
+                dir = snake_smooth[i-1] - snake_smooth[i]
             }
-        rot := math.atan2(f32(dir.y),f32(dir.x)) * math.DEG_PER_RAD
+        rot := math.atan2(dir.y,dir.x) * math.DEG_PER_RAD
         source := r1.Rectangle{
             0,0,
             f32(part_sprite.width),
             f32(part_sprite.width)
         }
         dest := r1.Rectangle{
-            f32(snake[i].x)*CELL_SIZE + 0.5 * CELL_SIZE,
-            f32(snake[i].y)*CELL_SIZE + 0.5 * CELL_SIZE,
+            snake_smooth[i].x*CELL_SIZE + 0.5 * CELL_SIZE,
+            snake_smooth[i].y*CELL_SIZE + 0.5 * CELL_SIZE,
                 CELL_SIZE,
                 CELL_SIZE
         }
