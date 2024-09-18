@@ -13,12 +13,14 @@ TICK_RATE :: 0.13
 move_direction: Vec2i
 tick_timer:f32 = TICK_RATE
 MAX_SNAKE_LENGTH :: GRID_WIDTH*GRID_WIDTH
+SNAKE_STARTING_LENGTH :: 3
 
 snake: [MAX_SNAKE_LENGTH]Vec2i
 snake_length:int
 game_over: bool
 
 food_pos:Vec2i
+high_score: int
 
 place_food :: proc(){
     occupied:[GRID_WIDTH][GRID_WIDTH] bool
@@ -41,7 +43,11 @@ place_food :: proc(){
 }
 
 restart :: proc(){
-    snake_length =8
+
+    if high_score < snake_length - SNAKE_STARTING_LENGTH{
+        high_score = snake_length - SNAKE_STARTING_LENGTH
+    }
+    snake_length = SNAKE_STARTING_LENGTH
 
     start_head_position :Vec2i = {GRID_WIDTH/2,GRID_WIDTH/2}
     for i:= 0; i < snake_length; i +=1{
@@ -170,14 +176,24 @@ main ::proc(){
             r1.WHITE
             )
         }
-        if game_over{
-            r1.DrawText("Game Over",4,4,25,r1.RED);
-            r1.DrawText("Press enter to restart",4,30,15,r1.BLACK);
 
-        }
         score := snake_length - 3
         score_str := fmt.ctprintf("Score: %v",score)
         r1.DrawText(score_str,4,CANVAS_SIZE - 14,10,r1.BLACK)
+
+        if game_over{
+            r1.DrawText("Game Over",4,4,25,r1.RED);
+            r1.DrawText("Press enter to restart",4,30,15,r1.BLACK);
+            if high_score < score{
+               high_score_str := fmt.ctprintf("High Score:: %v",score)
+               r1.DrawText("New High Score",4,70,30,r1.BLACK);
+               r1.DrawText(high_score_str,4,100,30,r1.BLACK);
+            }else{
+               high_score_str := fmt.ctprintf("High Score:: %v",high_score)
+               r1.DrawText(high_score_str,4,70,30,r1.BLACK);
+            }
+
+        }
 
         r1.EndMode2D()
         r1.EndDrawing()
