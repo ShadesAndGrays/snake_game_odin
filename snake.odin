@@ -62,6 +62,7 @@ main ::proc(){
     r1.SetConfigFlags({.VSYNC_HINT})
     r1.InitWindow(WINDOW_SIZE,WINDOW_SIZE,"Snake")
     r1.InitAudioDevice()
+    game_pad:i32
 
     restart()
     food_sprite := r1.LoadTexture("assets/food.png")
@@ -78,21 +79,21 @@ main ::proc(){
     }
 
     for !r1.WindowShouldClose(){
-        if r1.IsKeyDown(.UP) && move_direction.y != 1{
+        if (r1.IsKeyDown(.UP) || r1.IsGamepadButtonDown(game_pad,.RIGHT_FACE_UP)) && move_direction.y != 1{
             move_direction = {0,-1} 
 
-        }else if r1.IsKeyDown(.DOWN) && move_direction.y != -1{
+        }else if (r1.IsKeyDown(.DOWN) || r1.IsGamepadButtonDown(game_pad,.RIGHT_FACE_DOWN) ) && move_direction.y != -1{
             move_direction = {0,1} 
 
-        }else if r1.IsKeyDown(.LEFT) && move_direction.x != 1{
+        }else if (r1.IsKeyDown(.LEFT) || r1.IsGamepadButtonDown(game_pad,.RIGHT_FACE_LEFT) ) && move_direction.x != 1{
             move_direction = {-1,0} 
 
-        }else if r1.IsKeyDown(.RIGHT) && move_direction.x != -1{
+        }else if (r1.IsKeyDown(.RIGHT) || r1.IsGamepadButtonDown(game_pad,.RIGHT_FACE_RIGHT) ) && move_direction.x != -1{
             move_direction = {1,0} 
         }
 
         if game_over{
-            if r1.IsKeyDown(.ENTER){
+            if r1.IsKeyDown(.ENTER) || r1.IsGamepadButtonDown(game_pad,.RIGHT_TRIGGER_2){
                 restart()
             }
 
