@@ -22,6 +22,9 @@ game_over: bool
 food_pos:Vec2i
 high_score: int
 
+shake_timer:f32 
+SHAKE_DURATION :: 2.0
+
 place_food :: proc(){
     occupied:[GRID_WIDTH][GRID_WIDTH] bool
     for i in 0..<snake_length{
@@ -43,7 +46,6 @@ place_food :: proc(){
 }
 
 restart :: proc(){
-
     if high_score < snake_length - SNAKE_STARTING_LENGTH{
         high_score = snake_length - SNAKE_STARTING_LENGTH
     }
@@ -58,6 +60,19 @@ restart :: proc(){
 
 }
 
+start_shake :: proc(shake_time:f32){
+    shake_timer = shake_time
+}
+
+update_shake :: proc(camera:^r1.Camera2D){
+    if shake_timer <= 0{
+        camera.offset = {0,0}
+    }else{
+    shake_timer -= TICK_RATE;
+    camera.offset = { f32(r1.GetRandomValue(0,10)) ,f32(r1.GetRandomValue(1,10)) }
+    }
+
+}
 main ::proc(){
     r1.SetConfigFlags({.VSYNC_HINT})
     r1.InitWindow(WINDOW_SIZE,WINDOW_SIZE,"Snake")
@@ -72,6 +87,15 @@ main ::proc(){
 
     eat_sound := r1.LoadSound("assets/eat.wav")
     crash_sound := r1.LoadSound("assets/crash.wav")
+    r1.SetSoundVolume(eat_sound,1.5)
+    r1.SetSoundVolume(crash_sound,1.5)
+
+    game_music := r1.LoadMusicStream("music/Joshua McLean - Mountain Trials.mp3")
+    game_music.looping = true
+    r1.SetMusicVolume(game_music,0.4)
+    r1.PlayMusicStream(game_music)
+
+
     place_food()
 
     camera := r1.Camera2D{
@@ -79,6 +103,8 @@ main ::proc(){
     }
 
     for !r1.WindowShouldClose(){
+
+        r1.UpdateMusicStream(game_music)
         if (r1.IsKeyDown(.UP) || r1.IsGamepadButtonDown(game_pad,.RIGHT_FACE_UP)) && move_direction.y != 1{
             move_direction = {0,-1} 
 
@@ -93,8 +119,11 @@ main ::proc(){
         }
 
         if game_over{
+
+            r1.SetMusicPitch(game_music,0.4)
             if r1.IsKeyDown(.ENTER) || r1.IsGamepadButtonDown(game_pad,.RIGHT_TRIGGER_2){
                 restart()
+                r1.SetMusicPitch(game_music,1.0)
             }
 
         }else{
@@ -125,7 +154,8 @@ main ::proc(){
             for i in 1..<snake_length{
                 cur_pos := snake[i] 
                 if cur_pos == snake[0]{
-                    game_over  = true
+                    game_over = true
+                    start_shake(2.0)
                     r1.PlaySound(crash_sound)
                 }
                 snake[i] = next_part_pos
@@ -135,6 +165,7 @@ main ::proc(){
             tick_timer = TICK_RATE + tick_timer
         }
 
+        update_shake(&camera)
 
         r1.BeginDrawing()
         r1.ClearBackground(r1.RAYWHITE)
@@ -167,7 +198,6 @@ main ::proc(){
                 CELL_SIZE,
                 CELL_SIZE
         }
-        // r1.DrawTextureEx(part_sprite,{f32(snake[i].x),f32(snake[i].y)}*CELL_SIZE,rot,1,r1.WHITE)
         r1.DrawTexturePro(
             part_sprite,
             source,
@@ -206,8 +236,6 @@ main ::proc(){
     r1.UnloadTexture(body_sprite)
     r1.UnloadTexture(taile_sprite)
 
-
     r1.CloseWindow()
     r1.CloseAudioDevice()
-
 }
